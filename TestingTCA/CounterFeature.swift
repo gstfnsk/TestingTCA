@@ -28,6 +28,8 @@ struct CounterFeature {
         case timerTick
     }
     
+    nonisolated enum CancelID { case timer }
+    
     var body: some Reducer<State, Action> {
         Reduce { state, action in
             switch action {
@@ -51,18 +53,26 @@ struct CounterFeature {
                     
                     await send(.factResponse(fact))
                 }
+                
             case .factResponse(let fact):
                 state.fact = fact
                 state.isLoading = false
                 return .none
+                
             case .toggleTimerButtonTapped:
                 state.isTimerRunning.toggle()
-                return .run { send in
-                    while true {
-                        try await Task.sleep(for: .seconds(1))
-                        await send(.timerTick)
+                if (state.isTimerRunning) {
+                    return .run { send in
+                        while true {
+                            try await Task.sleep(for: .seconds(1))
+                            await send(.timerTick)
+                        }
                     }
-                }
+                    .cancellable(id: CancelID.timer)
+                } else {
+              return .cancel(id: CancelID.timer)
+            }
+                
             case .timerTick:
                 state.count += 1
                 state.fact = nil
