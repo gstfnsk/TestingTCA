@@ -14,9 +14,8 @@ import ComposableArchitecture
 struct TestingTCATests {
     
     @Test
-    
-    func basics() async {
-        
+    // Test timer running and stopping
+    func timer() async {
         let clock = TestClock()
         
         let store = TestStore(initialState: CounterFeature.State()) {
@@ -25,7 +24,6 @@ struct TestingTCATests {
             $0.continuousClock = clock
         }
         
-        // Test timer running and stopping
         await store.send(.toggleTimerButtonTapped) {
             $0.isTimerRunning = true
         }
@@ -36,13 +34,38 @@ struct TestingTCATests {
         await store.send(.toggleTimerButtonTapped) {
             $0.isTimerRunning = false
         }
+    }
+    
+    @Test
+    // Test +/- button actions
+    func basics() async {
+        let store = TestStore(initialState: CounterFeature.State()) {
+            CounterFeature()
+        }
         
-        // Test +/- button actions
         await store.send(.incrementButtonTapped) {
             $0.count += 1
         }
         await store.send(.decrementButtonTapped) {
             $0.count -= 1
+        }
+    }
+    @Test
+    func numberFact() async {
+        
+        let store = TestStore(initialState: CounterFeature.State()) {
+            CounterFeature()
+        } withDependencies: {
+            $0.numberFact.fetch = { "\($0) is a good number." }
+          }
+        
+        await store.send(.factButtonTapped) {
+            $0.isLoading = true
+        }
+        
+        await store.receive(\.factResponse) {
+              $0.isLoading = false
+              $0.fact = "0 is a good number."
         }
     }
 }
