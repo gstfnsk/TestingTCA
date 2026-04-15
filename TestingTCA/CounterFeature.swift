@@ -30,6 +30,8 @@ struct CounterFeature {
     
     nonisolated enum CancelID { case timer }
     
+    @Dependency(\.continuousClock) var clock
+    
     var body: some Reducer<State, Action> {
         Reduce { state, action in
             switch action {
@@ -63,8 +65,7 @@ struct CounterFeature {
                 state.isTimerRunning.toggle()
                 if (state.isTimerRunning) {
                     return .run { send in
-                        while true {
-                            try await Task.sleep(for: .seconds(1))
+                        for await _ in self.clock.timer(interval: .seconds(1)) {
                             await send(.timerTick)
                         }
                     }
